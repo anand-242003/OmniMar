@@ -115,6 +115,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 </button>
                 <button
                   onClick={() => {
+                    navigate('/activity');
+                    setShowUserMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-omx-text hover:bg-omx-hover transition-colors"
+                >
+                  Activity
+                </button>
+                <button
+                  onClick={() => {
                     navigate('/settings');
                     setShowUserMenu(false);
                   }}
