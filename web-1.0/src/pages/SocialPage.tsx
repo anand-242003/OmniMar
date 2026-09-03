@@ -215,7 +215,7 @@ export const SocialPage: React.FC = () => {
 
           {/* Sentiment Selection & Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-omx-border/70">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedSentiment((prev) => (prev === 'BULLISH' ? null : 'BULLISH'))}
