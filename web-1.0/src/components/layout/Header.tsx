@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTrade } from '../../context/TradeContext';
 import { useRouter } from '../../context/RouterContext';
 import { SearchInput } from './SearchInput';
 
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { isAuthenticated, user, openAuthModal, logout } = useAuth();
+  const { balance } = useTrade();
   const { navigate } = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -70,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               >
                 <span className="text-omx-text-muted">Virtual:</span>
                 <span className="font-semibold text-omx-yes">
-                  ${user?.virtualBalance.toLocaleString()}.00
+                  ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-[10px] text-omx-text-muted">USDC</span>
               </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { TradeProvider } from './context/TradeContext';
 import { RouterProvider, useRouter } from './context/RouterContext';
 import { AppLayout } from './components/layout/AppLayout';
 
@@ -63,9 +64,11 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RouterProvider>
-          <AppContent />
-        </RouterProvider>
+        <TradeProvider>
+          <RouterProvider>
+            <AppContent />
+          </RouterProvider>
+        </TradeProvider>
       </AuthProvider>
     </ThemeProvider>
   );
