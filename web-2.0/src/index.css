@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme="light"] {
+  --font-sora: "Sora", system-ui, -apple-system, sans-serif;
+  --font-geist-mono: "Geist Mono", monospace;
+
+  --color-omx-bg: #f8fafc;
+  --color-omx-card: #ffffff;
+  --color-omx-elevated: #f1f5f9;
+  --color-omx-hover: rgba(242, 48, 100, 0.05);
+  --color-omx-active: rgba(242, 48, 100, 0.10);
+  --color-omx-border: #e2e8f0;
+  --color-omx-border-strong: #cbd5e1;
+  --color-omx-border-subtle: #f1f5f9;
+
+  --color-omx-text: #0f172a;
+  --color-omx-text-secondary: #475569;
+  --color-omx-text-muted: #64748b;
+
+  --color-omx-yes: #059669;
+  --color-omx-yes-bg: rgba(5, 150, 105, 0.10);
+  --color-omx-no: #e11d48;
+  --color-omx-no-bg: rgba(225, 29, 72, 0.10);
+
+  --color-omx-brand: #e11d48;
+  --color-omx-sandbox: #4f46e5;
+  --color-omx-sandbox-bg: rgba(79, 70, 229, 0.10);
+}
+
+[data-theme="dark"] {
+  --font-sora: "Sora", system-ui, -apple-system, sans-serif;
+  --font-geist-mono: "Geist Mono", monospace;
+
+  --color-omx-bg: #090426;
+  --color-omx-card: #110a36;
+  --color-omx-elevated: #1b1150;
+  --color-omx-hover: rgba(242, 48, 100, 0.08);
+  --color-omx-active: rgba(242, 48, 100, 0.14);
+  --color-omx-border: rgba(255, 255, 255, 0.12);
+  --color-omx-border-strong: rgba(255, 255, 255, 0.20);
+  --color-omx-border-subtle: rgba(255, 255, 255, 0.08);
+
+  --color-omx-text: #ffffff;
+  --color-omx-text-secondary: #94a3b8;
+  --color-omx-text-muted: #94a3b8;
+
+  --color-omx-yes: #10b981;
+  --color-omx-yes-bg: rgba(16, 185, 129, 0.12);
+  --color-omx-no: #f43f5e;
+  --color-omx-no-bg: rgba(244, 63, 94, 0.12);
+
+  --color-omx-brand: #f23064;
+  --color-omx-sandbox: #6366f1;
+  --color-omx-sandbox-bg: rgba(99, 102, 241, 0.12);
+}
+
+html {
+  font-family: var(--font-sora), system-ui, -apple-system, sans-serif;
+  color-scheme: light dark;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Custom scrollbars matching live site */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-omx-border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-omx-border-strong);
+}
