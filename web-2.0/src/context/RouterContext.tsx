@@ -1,11 +1,28 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+export interface PendingReturn {
+  route: string;
+  action: 'trade' | 'join-group' | 'post' | 'generic';
+  actionLabel: string; // "place this prediction" / "join this group"
+  tradeState?: {
+    marketId: string;
+    outcome: string;
+    amount: number;
+  };
+  groupId?: string;
+}
+
 interface RouterContextType {
   currentPath: string;
   navigate: (path: string) => void;
   marketId: string;
-  pendingIntent: { marketId: string; outcome: 'YES' | 'NO'; amount: number } | null;
-  setPendingIntent: (intent: { marketId: string; outcome: 'YES' | 'NO'; amount: number } | null) => void;
+  pendingIntent: { marketId: string; outcome: string; amount: number } | null;
+  setPendingIntent: (intent: { marketId: string; outcome: string; amount: number } | null) => void;
+  pendingReturn: PendingReturn | null;
+  setPendingReturn: (r: PendingReturn | null) => void;
+  isAuthModalOpen: boolean;
+  openAuthModal: (pending?: PendingReturn) => void;
+  closeAuthModal: () => void;
 }
 
 const RouterContext = createContext<RouterContextType | undefined>(undefined);
@@ -13,13 +30,15 @@ const RouterContext = createContext<RouterContextType | undefined>(undefined);
 export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentPath, setCurrentPath] = useState<string>(() => {
     const pathname = window.location.pathname;
-    if (pathname.startsWith('/markets/')) {
+    if (pathname) {
       return pathname;
     }
-    return '/markets/will-gta-vi-release-before-december-2026';
+    return '/';
   });
 
-  const [pendingIntent, setPendingIntent] = useState<{ marketId: string; outcome: 'YES' | 'NO'; amount: number } | null>(null);
+  const [pendingIntent, setPendingIntent] = useState<{ marketId: string; outcome: string; amount: number } | null>(null);
+  const [pendingReturn, setPendingReturn] = useState<PendingReturn | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -34,6 +53,17 @@ export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCurrentPath(path);
   };
 
+  const openAuthModal = (pending?: PendingReturn) => {
+    if (pending) {
+      setPendingReturn(pending);
+    }
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
   // Extract marketId if on a market detail route
   let marketId = 'will-gta-vi-release-before-december-2026';
   if (currentPath.startsWith('/markets/')) {
@@ -42,7 +72,20 @@ export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }
 
   return (
-    <RouterContext.Provider value={{ currentPath, navigate, marketId, pendingIntent, setPendingIntent }}>
+    <RouterContext.Provider
+      value={{
+        currentPath,
+        navigate,
+        marketId,
+        pendingIntent,
+        setPendingIntent,
+        pendingReturn,
+        setPendingReturn,
+        isAuthModalOpen,
+        openAuthModal,
+        closeAuthModal,
+      }}
+    >
       {children}
     </RouterContext.Provider>
   );

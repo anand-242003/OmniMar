@@ -34,27 +34,31 @@
   --font-sora: "Sora", system-ui, -apple-system, sans-serif;
   --font-geist-mono: "Geist Mono", monospace;
 
-  --color-omx-bg: #090426;
-  --color-omx-card: #110a36;
-  --color-omx-elevated: #1b1150;
-  --color-omx-hover: rgba(242, 48, 100, 0.08);
-  --color-omx-active: rgba(242, 48, 100, 0.14);
-  --color-omx-border: rgba(255, 255, 255, 0.12);
-  --color-omx-border-strong: rgba(255, 255, 255, 0.20);
-  --color-omx-border-subtle: rgba(255, 255, 255, 0.08);
+  /* Premium Institutional Dark: Deep Obsidian Slate (Zero harsh purple/crypto hue) */
+  --color-omx-bg: #0a0e17;
+  --color-omx-card: #111622;
+  --color-omx-elevated: #171f2e;
+  --color-omx-hover: rgba(255, 255, 255, 0.04);
+  --color-omx-active: rgba(255, 255, 255, 0.08);
+  --color-omx-border: rgba(255, 255, 255, 0.09);
+  --color-omx-border-strong: rgba(255, 255, 255, 0.16);
+  --color-omx-border-subtle: rgba(255, 255, 255, 0.05);
 
-  --color-omx-text: #ffffff;
+  /* Precise Text Hierarchy: Primary > Secondary > Muted */
+  --color-omx-text: #f8fafc;
   --color-omx-text-secondary: #94a3b8;
-  --color-omx-text-muted: #94a3b8;
+  --color-omx-text-muted: #64748b;
 
+  /* Semantic Outcome Roles: Crisp Emerald & Disciplined Rose */
   --color-omx-yes: #10b981;
   --color-omx-yes-bg: rgba(16, 185, 129, 0.12);
   --color-omx-no: #f43f5e;
   --color-omx-no-bg: rgba(244, 63, 94, 0.12);
 
+  /* Brand Primary & Distinct Sandbox/Demo Roles */
   --color-omx-brand: #f23064;
   --color-omx-sandbox: #6366f1;
-  --color-omx-sandbox-bg: rgba(99, 102, 241, 0.12);
+  --color-omx-sandbox-bg: rgba(99, 102, 241, 0.14);
 }
 
 html {
@@ -88,3 +92,62 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-omx-border-strong);
 }
+
+/* 3D Mode-Flip & Motion Transition Layer */
+.perspective-container {
+  perspective: 1000px;
+}
+
+.mode-flip-box {
+  transform-style: preserve-3d;
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 250ms ease-out;
+}
+
+.mode-flip-transitioning {
+  transform: rotateX(90deg) scale(0.92);
+  opacity: 0.3;
+  filter: blur(1px);
+}
+
+.mode-flip-settled {
+  transform: rotateX(0deg) scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* Tactile Trade Confirmation Success Animation */
+@keyframes success-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-success-pop {
+  animation: success-pop 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Strict reduced motion accessibility compliance */
+@media (prefers-reduced-motion: reduce) {
+  .mode-flip-box,
+  .mode-flip-transitioning,
+  .mode-flip-settled {
+    transform: none !important;
+    filter: none !important;
+    transition: opacity 150ms ease-out !important;
+  }
+
+  .animate-success-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+

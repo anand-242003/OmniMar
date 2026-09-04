@@ -27,12 +27,23 @@ export interface MarketDiscussion {
   commentsCount: number;
 }
 
+export type MarketOutcomeType = 'binary' | 'multi';
+
+export interface MultiOutcomeOption {
+  id: string;
+  label: string;
+  priceCents: number; // in cents (e.g. 33)
+  probability: number; // percentage (e.g. 33)
+}
+
 export interface Market {
   id: string;
   question: string;
   category: string;
   categoryIcon: string;
   status: 'ACTIVE' | 'RESOLVED' | 'CLOSING_SOON';
+  outcomeType: MarketOutcomeType;
+  outcomes?: MultiOutcomeOption[];
   yesPrice: number; // in cents (e.g. 65 for 65¢)
   noPrice: number;  // in cents (e.g. 35 for 35¢)
   impliedProbabilityYes: number; // 65

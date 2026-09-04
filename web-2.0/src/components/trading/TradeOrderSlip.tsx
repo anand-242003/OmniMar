@@ -4,6 +4,7 @@ import type { Market } from '../../types/market';
 import type { Outcome, TradeReceipt } from '../../types/trade';
 import { useTrade } from '../../context/TradeContext';
 import { useRouter } from '../../context/RouterContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface TradeOrderSlipProps {
   market: Market;
@@ -16,10 +17,14 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
   stagedOutcome,
   onPositionPlaced,
 }) => {
-  const { balance, executeTrade } = useTrade();
-  const { navigate } = useRouter();
+  const { accountMode, balance, executeTrade } = useTrade();
+  const { navigate, currentPath, openAuthModal } = useRouter();
+  const { isAuthenticated } = useAuth();
 
-  const [outcome, setOutcome] = useState<Outcome>(stagedOutcome || 'YES');
+  const isMulti = market.outcomeType === 'multi' && Array.isArray(market.outcomes) && market.outcomes.length > 0;
+  const initialOutcome: Outcome = stagedOutcome || (isMulti && market.outcomes ? market.outcomes[0].label : 'YES');
+
+  const [outcome, setOutcome] = useState<Outcome>(initialOutcome);
   const [dollarInput, setDollarInput] = useState<string>('25.00');
   const [shareToFeed, setShareToFeed] = useState<boolean>(true);
   const [receipt, setReceipt] = useState<TradeReceipt | null>(null);
@@ -33,7 +38,19 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
     }
   }, [stagedOutcome]);
 
-  const priceCents = outcome === 'YES' ? market.yesPrice : market.noPrice;
+  // Keep outcome valid if market changes
+  useEffect(() => {
+    if (isMulti && market.outcomes && market.outcomes.length > 0) {
+      if (!market.outcomes.some((o) => o.label === outcome)) {
+        setOutcome(market.outcomes[0].label);
+      }
+    }
+  }, [isMulti, market.id, market.outcomes, outcome]);
+
+  const selectedMultiOpt = isMulti && market.outcomes ? market.outcomes.find((o) => o.label === outcome) || market.outcomes[0] : null;
+  const priceCents = isMulti && selectedMultiOpt 
+    ? selectedMultiOpt.priceCents 
+    : (outcome === 'YES' ? market.yesPrice : market.noPrice);
 
   const parsedAmount = parseFloat(dollarInput) || 0;
   const calculatedShares = parsedAmount > 0 ? parsedAmount / (priceCents / 100) : 0;
@@ -70,10 +87,28 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
     }
 
     if (parsedAmount > balance) {
-      setErrorMessage(`Insufficient balance ($${balance.toFixed(2)} available).`);
+      setErrorMessage(
+        `Insufficient ${accountMode === 'demo' ? 'demo' : 'real'} balance ($${balance.toFixed(2)} available).`
+      );
       return;
     }
 
+    // Real mode is strictly gated behind authentication
+    if (accountMode === 'real' && !isAuthenticated) {
+      openAuthModal({
+        route: currentPath,
+        action: 'trade',
+        actionLabel: 'place this real-money prediction',
+        tradeState: {
+          marketId: market.id,
+          outcome,
+          amount: parsedAmount,
+        },
+      });
+      return;
+    }
+
+    // Demo trades are executable immediately by guests per File 04 §4
     const res = executeTrade({
       marketId: market.id,
       marketQuestion: market.question,
@@ -99,16 +134,31 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
     }
   };
 
-  // State: Confirmed Trade Receipt State (Refinement 10 & 11)
+  // State: Confirmed Trade Receipt State
   if (receipt) {
+    const isDemoReceipt = accountMode === 'demo';
     return (
-      <div className="rounded-xl border border-omx-border-strong bg-omx-card p-5 shadow-omx-card space-y-4">
+      <div className={`rounded-xl border p-5 shadow-omx-card space-y-4 animate-success-pop ${
+        isDemoReceipt ? 'border-indigo-500/30 bg-omx-card' : 'border-emerald-500/30 bg-omx-card'
+      }`}>
         {/* Prioritized Outcome Confirmation Header */}
-        <div className="flex items-center space-x-2 text-omx-yes">
-          <CheckCircle2 className="h-5 w-5" />
-          <h3 className="font-sora font-bold text-base text-omx-text tracking-tight">
-            Prediction Confirmed
-          </h3>
+        <div className="flex items-center justify-between">
+          <div className={`flex items-center space-x-2 ${isDemoReceipt ? 'text-indigo-400' : 'text-emerald-400'}`}>
+            <div className="relative flex items-center justify-center">
+              <span className={`absolute h-7 w-7 rounded-full animate-ping opacity-30 ${isDemoReceipt ? 'bg-indigo-400' : 'bg-emerald-400'}`} />
+              <CheckCircle2 className="h-5 w-5 relative z-10" />
+            </div>
+            <h3 className="font-sora font-bold text-base text-omx-text tracking-tight">
+              {isDemoReceipt ? 'Demo Prediction Confirmed' : 'Real Order Confirmed'}
+            </h3>
+          </div>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
+            isDemoReceipt 
+              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' 
+              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+          }`}>
+            {isDemoReceipt ? 'Virtual Practice' : 'Verified USDC'}
+          </span>
         </div>
 
         {/* Outcome & Financial Summary Card */}
@@ -117,7 +167,11 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
           <div className="flex items-center justify-between">
             <span
               className={`font-sora font-bold px-2.5 py-1 rounded-md text-sm ${
-                receipt.outcome === 'YES' ? 'bg-omx-yes-bg text-omx-yes' : 'bg-omx-no-bg text-omx-no'
+                receipt.outcome === 'YES'
+                  ? 'bg-omx-yes-bg text-omx-yes'
+                  : receipt.outcome === 'NO'
+                  ? 'bg-omx-no-bg text-omx-no'
+                  : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
               }`}
             >
               {receipt.outcome} · {receipt.priceCents}¢
@@ -130,7 +184,9 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
           <div className="border-t border-omx-border pt-2.5 space-y-2">
             <div className="flex items-center justify-between text-omx-text-secondary">
               <span>Your Stake</span>
-              <span className="font-mono font-semibold text-omx-text">${receipt.stakeUsdc.toFixed(2)} USDC</span>
+              <span className="font-mono font-semibold text-omx-text">
+                ${receipt.stakeUsdc.toFixed(2)} {isDemoReceipt ? 'Demo USDC' : 'USDC'}
+              </span>
             </div>
 
             <div className="flex items-center justify-between text-omx-text-secondary">
@@ -158,9 +214,15 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
           </div>
         </div>
 
+        {/* Mode Notification in Receipt */}
+        {isDemoReceipt && (
+          <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-3 py-2 text-center text-[11px] text-indigo-300">
+            Demo trade executed with virtual balance. Market odds remained unchanged.
+          </div>
+        )}
+
         {/* Explicit Action Pathways */}
         <div className="space-y-2 pt-1">
-          {/* Primary Action: View Position */}
           <button
             type="button"
             onClick={handleViewPosition}
@@ -170,7 +232,6 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
             <span>View Position</span>
           </button>
 
-          {/* Secondary Action: Explore Markets */}
           <button
             type="button"
             onClick={() => navigate('/markets/will-gta-vi-release-before-december-2026')}
@@ -180,7 +241,6 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
             <span>Explore More Markets</span>
           </button>
 
-          {/* Tertiary Action: Make another prediction on this market */}
           <button
             type="button"
             onClick={() => setReceipt(null)}
@@ -193,67 +253,112 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
     );
   }
 
-  // Active Trade Form State (Refinements 04, 05, 06, 09, 18)
+  const isDemo = accountMode === 'demo';
+
+  // Active Trade Form State
   return (
-    <div className="rounded-xl border border-omx-border bg-omx-card p-5 shadow-omx-card space-y-4">
-      {/* Header: Clean title + Sandbox indicator (Refinement 04: NO Buy/Sell toggle) */}
+    <div className={`rounded-xl border p-5 shadow-omx-card space-y-4 ${
+      isDemo ? 'border-indigo-500/30 bg-omx-card' : 'border-omx-border bg-omx-card'
+    }`}>
+      {/* Header: Clean title + Mode indicator (File 04 §3) */}
       <div className="flex items-center justify-between">
         <span className="font-sora font-bold text-sm text-omx-text">
           Choose Your Prediction
         </span>
 
-        <span className="inline-flex items-center space-x-1.5 rounded-full border border-omx-sandbox/30 bg-omx-sandbox-bg px-2.5 py-0.5 text-[11px] font-medium text-omx-sandbox">
-          <span className="h-1.5 w-1.5 rounded-full bg-omx-sandbox" />
-          <span>Practice Sandbox</span>
-        </span>
+        {isDemo ? (
+          <span className="inline-flex items-center space-x-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            <span>Demo Mode (Virtual)</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center space-x-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>Real Money Mode</span>
+          </span>
+        )}
       </div>
 
-      {/* Outcome Selection Pills (Refinement 05: Explicit Price + Probability Hierarchy) */}
-      <div className="grid grid-cols-2 gap-2.5">
-        {/* YES Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            setOutcome('YES');
-            setErrorMessage(null);
-          }}
-          className={`relative flex flex-col items-start rounded-xl p-3 text-left transition-all border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-omx-yes ${
-            outcome === 'YES'
-              ? 'border-omx-yes bg-omx-yes-bg text-omx-text shadow-sm'
-              : 'border-omx-border bg-omx-bg hover:border-omx-border-strong text-omx-text-secondary'
-          }`}
-        >
-          <div className="flex items-center justify-between w-full">
-            <span className="font-sora text-xs font-bold text-omx-yes tracking-wider">▲ YES</span>
-            <span className="font-mono text-base font-bold text-omx-yes">{market.yesPrice}¢</span>
+      {/* Outcome Selection (Binary vs Multi-outcome per Amendment 3) */}
+      {isMulti && market.outcomes ? (
+        <div className="space-y-2">
+          <label className="text-[11px] font-medium text-omx-text-muted block">Select Outcome</label>
+          <div className="space-y-1.5">
+            {market.outcomes.map((opt) => {
+              const isSelected = outcome === opt.label;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setOutcome(opt.label);
+                    setErrorMessage(null);
+                  }}
+                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left transition-all border cursor-pointer focus:outline-none ${
+                    isSelected
+                      ? isDemo
+                        ? 'border-indigo-500 bg-indigo-500/15 text-omx-text shadow-sm ring-1 ring-indigo-500/40'
+                        : 'border-omx-brand bg-omx-brand/15 text-omx-text shadow-sm ring-1 ring-omx-brand/40'
+                      : 'border-omx-border bg-omx-bg hover:border-omx-border-strong text-omx-text-secondary'
+                  }`}
+                >
+                  <span className="font-sora text-xs font-semibold text-omx-text">{opt.label}</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-sm font-bold text-omx-text">{opt.priceCents}¢</span>
+                    <span className="font-mono text-[11px] text-omx-text-muted">({opt.probability}%)</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          <span className="font-mono text-[11px] text-omx-text-muted mt-1">
-            ~{market.impliedProbabilityYes}% implied probability
-          </span>
-        </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* YES Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              setOutcome('YES');
+              setErrorMessage(null);
+            }}
+            className={`relative flex flex-col items-start rounded-xl p-3 text-left transition-all border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-omx-yes ${
+              outcome === 'YES'
+                ? 'border-omx-yes bg-omx-yes-bg text-omx-text shadow-sm'
+                : 'border-omx-border bg-omx-bg hover:border-omx-border-strong text-omx-text-secondary'
+            }`}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="font-sora text-xs font-bold text-omx-yes tracking-wider">▲ YES</span>
+              <span className="font-mono text-base font-bold text-omx-yes">{market.yesPrice}¢</span>
+            </div>
+            <span className="font-mono text-[11px] text-omx-text-muted mt-1">
+              ~{market.impliedProbabilityYes}% implied probability
+            </span>
+          </button>
 
-        {/* NO Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            setOutcome('NO');
-            setErrorMessage(null);
-          }}
-          className={`relative flex flex-col items-start rounded-xl p-3 text-left transition-all border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-omx-no ${
-            outcome === 'NO'
-              ? 'border-omx-no bg-omx-no-bg text-omx-text shadow-sm'
-              : 'border-omx-border bg-omx-bg hover:border-omx-border-strong text-omx-text-secondary'
-          }`}
-        >
-          <div className="flex items-center justify-between w-full">
-            <span className="font-sora text-xs font-bold text-omx-no tracking-wider">▼ NO</span>
-            <span className="font-mono text-base font-bold text-omx-no">{market.noPrice}¢</span>
-          </div>
-          <span className="font-mono text-[11px] text-omx-text-muted mt-1">
-            ~{market.impliedProbabilityNo}% implied probability
-          </span>
-        </button>
-      </div>
+          {/* NO Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              setOutcome('NO');
+              setErrorMessage(null);
+            }}
+            className={`relative flex flex-col items-start rounded-xl p-3 text-left transition-all border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-omx-no ${
+              outcome === 'NO'
+                ? 'border-omx-no bg-omx-no-bg text-omx-text shadow-sm'
+                : 'border-omx-border bg-omx-bg hover:border-omx-border-strong text-omx-text-secondary'
+            }`}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="font-sora text-xs font-bold text-omx-no tracking-wider">▼ NO</span>
+              <span className="font-mono text-base font-bold text-omx-no">{market.noPrice}¢</span>
+            </div>
+            <span className="font-mono text-[11px] text-omx-text-muted mt-1">
+              ~{market.impliedProbabilityNo}% implied probability
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Dollar-First Stake Input Area */}
       <div>
@@ -262,11 +367,15 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
             Your Stake Amount
           </label>
           <span className="font-mono text-[11px] text-omx-text-muted">
-            Available: ${balance.toFixed(2)} USDC
+            Available: ${balance.toFixed(2)} {isDemo ? 'Virtual USDC' : 'Real USDC'}
           </span>
         </div>
 
-        <div className="relative rounded-xl border border-omx-border-strong bg-omx-bg focus-within:border-omx-brand transition-colors">
+        <div className={`relative rounded-xl border bg-omx-bg transition-colors ${
+          isDemo 
+            ? 'border-omx-border-strong focus-within:border-indigo-500' 
+            : 'border-omx-border-strong focus-within:border-omx-brand'
+        }`}>
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <span className="font-mono text-base font-bold text-omx-text-secondary">$</span>
           </div>
@@ -277,14 +386,16 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
             value={dollarInput}
             onChange={handleAmountChange}
             placeholder="0.00"
-            className="w-full rounded-xl bg-transparent py-2.5 pl-8 pr-16 font-mono text-base font-bold text-omx-text placeholder-omx-text-muted focus:outline-none"
+            className="w-full rounded-xl bg-transparent py-2.5 pl-8 pr-20 font-mono text-base font-bold text-omx-text placeholder-omx-text-muted focus:outline-none"
           />
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-            <span className="font-mono text-xs font-semibold text-omx-text-muted">USDC</span>
+            <span className={`font-mono text-xs font-semibold ${isDemo ? 'text-indigo-400' : 'text-omx-text-muted'}`}>
+              {isDemo ? 'DEMO' : 'USDC'}
+            </span>
           </div>
         </div>
 
-        {/* Secondary Contract Share Calculation (Refinement 05 & 09) */}
+        {/* Secondary Contract Share Calculation */}
         <div className="mt-1.5 flex items-center justify-between text-[11px]">
           <span className="font-mono text-omx-text-secondary">
             ≈ {calculatedShares > 0 ? calculatedShares.toFixed(2) : '0.00'} shares @ {priceCents}¢
@@ -314,7 +425,7 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
         </div>
       </div>
 
-      {/* Complete Risk & Return Communication (Fintech Transparency with aria-live="polite") */}
+      {/* Complete Risk & Return Communication */}
       <div
         aria-live="polite"
         aria-atomic="true"
@@ -322,7 +433,9 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
       >
         <div className="flex items-center justify-between text-omx-text-secondary">
           <span>Your Stake</span>
-          <span className="font-mono font-semibold text-omx-text">${parsedAmount.toFixed(2)}</span>
+          <span className="font-mono font-semibold text-omx-text">
+            ${parsedAmount.toFixed(2)} {isDemo ? 'Virtual' : 'USDC'}
+          </span>
         </div>
 
         <div className="flex items-center justify-between text-omx-text-secondary">
@@ -339,7 +452,7 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
           </span>
         </div>
 
-        {/* Explicit Downside Communication (Fintech Transparency, Non-Alarmist) */}
+        {/* Explicit Downside Communication */}
         <div className="flex items-center justify-between border-t border-omx-border/70 pt-2 text-[11px] text-omx-text-muted">
           <span>If {outcome} does not resolve true</span>
           <span className="font-mono font-medium text-omx-text-secondary">
@@ -370,27 +483,59 @@ export const TradeOrderSlip: React.FC<TradeOrderSlipProps> = ({
         </label>
       </div>
 
-      {/* Primary Action Button */}
-      <button
-        type="button"
-        onClick={handleSubmit}
-        className={`w-full flex items-center justify-center space-x-2 rounded-xl py-3 text-sm font-sora font-bold text-white shadow-sm transition-all active:scale-[0.99] cursor-pointer ${
-          outcome === 'YES'
-            ? 'bg-omx-yes hover:bg-emerald-600'
-            : 'bg-omx-no hover:bg-rose-600'
-        }`}
-      >
-        <span>
-          Predict {outcome} — ${parsedAmount.toFixed(2)}
-        </span>
-        <ArrowRight className="h-4 w-4" />
-      </button>
+      {/* Primary Action Button — Styled with Demo accent tint per Amendment 2 */}
+      {isDemo ? (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="w-full flex items-center justify-center space-x-2 rounded-xl py-3.5 text-sm font-sora font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 shadow-sm transition-all active:scale-[0.99] cursor-pointer ring-1 ring-indigo-500/50"
+        >
+          <span>
+            Place Demo Prediction (${parsedAmount.toFixed(2)} Virtual)
+          </span>
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      ) : !isAuthenticated ? (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="w-full flex items-center justify-center space-x-2 rounded-xl py-3.5 text-sm font-sora font-bold text-white bg-omx-brand hover:bg-omx-brand-hover shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+        >
+          <span>Sign In to Place Real Order (${parsedAmount.toFixed(2)} USDC)</span>
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className={`w-full flex items-center justify-center space-x-2 rounded-xl py-3.5 text-sm font-sora font-bold text-white shadow-sm transition-all active:scale-[0.99] cursor-pointer ${
+            outcome === 'NO' ? 'bg-omx-no hover:bg-rose-600' : 'bg-omx-yes hover:bg-emerald-600'
+          }`}
+        >
+          <span>
+            Place Real Order (${parsedAmount.toFixed(2)} USDC)
+          </span>
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      )}
 
-      {/* Simplified Trust Note */}
-      <div className="flex items-center justify-center space-x-1.5 text-[11px] text-omx-text-muted">
-        <ShieldCheck className="h-3.5 w-3.5 text-omx-yes" />
-        <span>Price locked at {priceCents}¢ · Winning share pays $1.00</span>
-      </div>
+      {/* Trust Line / Subtext per File 04 §3 & Amendment 2 */}
+      {isDemo ? (
+        <div className="space-y-1 text-center">
+          <div className="flex items-center justify-center space-x-1.5 text-[11px] text-indigo-400 font-medium">
+            <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
+            <span>Demo trades don't affect market price.</span>
+          </div>
+          <p className="text-[11px] text-omx-text-muted">
+            Practice risk-free with $10k virtual balance · Price locked at {priceCents}¢
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center space-x-1.5 text-[11px] text-omx-text-muted">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+          <span>Verified Real Order · Price locked at {priceCents}¢ · Winning share pays $1.00</span>
+        </div>
+      )}
     </div>
   );
 };

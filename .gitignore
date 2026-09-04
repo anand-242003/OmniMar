@@ -19,3 +19,14 @@ yarn-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+.claude/
+.codex/
+.cursor/
+.impeccable/
+
+# Environment files
+.env
+.env*.local
+*.env
+web-2.0/.env
+

@@ -1,5 +1,15 @@
-export type Outcome = 'YES' | 'NO';
+export type AccountMode = 'real' | 'demo';
+export type Outcome = 'YES' | 'NO' | string;
 export type TradeAction = 'BUY' | 'SELL';
+
+export interface WalletState {
+  balance: number;
+  positions: DemoPosition[];
+  trades: DemoTrade[];
+}
+
+export type Position = DemoPosition;
+export type Trade = DemoTrade;
 
 export interface DemoPosition {
   id: string;

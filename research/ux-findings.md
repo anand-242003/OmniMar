@@ -12,7 +12,7 @@ This document logs all observed user experience friction points, ambiguities, an
 - **Problem**: Both the header "Sign In" and "Sign Up" buttons open the exact same modal dialog without any pre-selected state or contextual difference.
 - **Observed Behavior**: Clicking either button renders the Privy modal titled "Log in or sign up". Users expecting a dedicated signup registration form with explicit field guidance may experience initial confusion.
 - **Expected Behavior**: A clearer distinction or tabbed interface indicating that the same single-step email OTP or OAuth flow handles both login and registration automatically.
-- **Why It Matters**: Reduces friction for web2 users unfamiliar with modern passwordless/Privy identity architectures.
+- **Why It Matters**: Reducesre friction for web2 users unfamiliar with modern passwordless/Privy identity architectures.
 - **Suggested Improvement**: Add a short subtitle: "No password needed — enter your email to sign in or create an account automatically."
 
 ---

@@ -16,3 +16,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+.impeccable
+.env
+.env*.local
+
