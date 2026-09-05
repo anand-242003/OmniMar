@@ -3,12 +3,11 @@ import { Users, ArrowRight, Check, Lock, MessageSquare, Send } from 'lucide-reac
 import { INITIAL_GROUPS, type Group, type GroupDiscussion } from '../data/groups';
 import { useRouter } from '../context/RouterContext';
 import { useAuth } from '../context/AuthContext';
-import { AuthGate } from '../components/common/AuthGate';
 
 type CategoryFilter = 'All' | 'Macroeconomics' | 'Technology & AI' | 'Entertainment' | 'Crypto' | 'Sports';
 
 export const GroupsPage: React.FC = () => {
-  const { navigate } = useRouter();
+  const { navigate, openAuthModal, currentPath } = useRouter();
   const { isAuthenticated } = useAuth();
 
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
@@ -128,34 +127,40 @@ export const GroupsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Join / Joined / Leave Button */}
+                  {/* Join / Joined / Sign In Button */}
                   {group.isJoined ? (
                     <button
                       type="button"
                       onClick={() => handleToggleJoin(group.id)}
-                      className="min-h-[38px] px-4 py-1.5 rounded-xl text-xs font-sora font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      className="min-h-[38px] px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-sora font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
                     >
                       <Check className="h-3.5 w-3.5" />
                       <span>Joined</span>
                     </button>
                   ) : !isAuthenticated ? (
-                    <AuthGate
-                      variant="inline"
-                      inlineMessage="Sign in to join guild"
-                      actionLabel={`join ${group.name}`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openAuthModal({
+                          route: currentPath,
+                          action: 'generic',
+                          actionLabel: `join ${group.name}`,
+                        })
+                      }
+                      className="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-sora font-semibold transition-all cursor-pointer flex items-center space-x-2 shrink-0 border border-omx-border-strong bg-omx-bg hover:border-omx-brand hover:bg-omx-brand/5 hover:text-omx-brand text-omx-text shadow-xs active:scale-[0.98] group/btn"
+                      title="Sign in to join guild"
+                      aria-label={`Sign in to join ${group.name}`}
                     >
-                      <button
-                        type="button"
-                        className="min-h-[38px] px-4 py-1.5 rounded-xl text-xs font-sora font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 border border-omx-border bg-omx-bg hover:border-omx-brand hover:text-omx-brand text-omx-text"
-                      >
-                        <span>Join Guild</span>
-                      </button>
-                    </AuthGate>
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-omx-brand/10 text-omx-brand group-hover/btn:bg-omx-brand group-hover/btn:text-white transition-colors">
+                        <Lock className="h-3 w-3" />
+                      </span>
+                      <span className="whitespace-nowrap font-medium">Sign in to Join</span>
+                    </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleToggleJoin(group.id)}
-                      className="min-h-[38px] px-4 py-1.5 rounded-xl text-xs font-sora font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 border border-omx-border bg-omx-bg hover:border-omx-brand hover:text-omx-brand text-omx-text"
+                      className="min-h-[38px] px-4 py-1.5 rounded-xl text-xs font-sora font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 border border-omx-border bg-omx-bg hover:border-omx-brand hover:text-omx-brand text-omx-text shadow-xs active:scale-[0.98]"
                     >
                       <span>Join Guild</span>
                     </button>
@@ -263,18 +268,52 @@ export const GroupsPage: React.FC = () => {
                   </div>
                 ) : (
                   /* === NON-MEMBER VIEW: locked discussion preview === */
-                  <div className="rounded-xl border border-dashed border-omx-border-strong/60 bg-omx-bg/50 p-4 flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
-                      <Lock className="h-4 w-4" />
+                  <div
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        openAuthModal({
+                          route: currentPath,
+                          action: 'generic',
+                          actionLabel: `join ${group.name}`,
+                        });
+                      } else {
+                        handleToggleJoin(group.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (!isAuthenticated) {
+                          openAuthModal({
+                            route: currentPath,
+                            action: 'generic',
+                            actionLabel: `join ${group.name}`,
+                          });
+                        } else {
+                          handleToggleJoin(group.id);
+                        }
+                      }
+                    }}
+                    className="rounded-xl border border-dashed border-omx-border-strong/70 bg-omx-bg/60 hover:bg-omx-card hover:border-omx-brand/50 p-4 flex items-center justify-between gap-3 cursor-pointer transition-all group/disc"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-omx-brand/10 text-omx-brand group-hover/disc:bg-omx-brand group-hover/disc:text-white shrink-0 transition-colors">
+                        <Lock className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-sora font-semibold text-omx-text group-hover/disc:text-omx-brand transition-colors">
+                          Member Discussion
+                        </p>
+                        <p className="text-[11px] text-omx-text-secondary mt-0.5 truncate">
+                          Join to read {group.discussions?.length ?? 0} member analyses on this market
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-sora font-semibold text-omx-text">
-                        Member Discussion
-                      </p>
-                      <p className="text-[11px] text-omx-text-secondary mt-0.5">
-                        Join to read {group.discussions?.length ?? 0} member analyses on this market
-                      </p>
-                    </div>
+                    <span className="text-[11px] font-sora font-semibold text-omx-brand shrink-0 group-hover/disc:underline">
+                      {isAuthenticated ? 'Join' : 'Sign In'} →
+                    </span>
                   </div>
                 )}
               </div>

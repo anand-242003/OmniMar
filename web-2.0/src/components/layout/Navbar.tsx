@@ -133,7 +133,7 @@ export const Navbar: React.FC = () => {
         {/* Right Action Utilities */}
         <div className="flex items-center space-x-2 sm:space-x-2.5">
           {/* Two-state segmented control [ Real | Demo ] */}
-          <div className="flex items-center rounded-xl border border-omx-border bg-omx-card p-0.5 text-xs font-sora font-semibold shrink-0">
+          <div className="hidden sm:flex items-center rounded-xl border border-omx-border bg-omx-card p-0.5 text-xs font-sora font-semibold shrink-0">
             <button
               type="button"
               onClick={() => handleModeClick('real')}
@@ -163,7 +163,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Mode-Aware Balance Capsule with 3D Flip & Cross-fade Transition */}
-          <div className="perspective-container">
+          <div className="perspective-container hidden sm:block">
             <div
               className={`mode-flip-box ${
                 isModeTransitioning ? 'mode-flip-transitioning' : 'mode-flip-settled'

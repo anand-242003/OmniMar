@@ -82,10 +82,10 @@ async function runVerification() {
     const restoredCount = await page.$$eval('article', (els) => els.length);
     assert(restoredCount === 6, `4b. Verified restoring "All" recovers 6 guilds (${restoredCount})`);
 
-    // Test 5: Toggle Join Guild Action
+    // Test 5: Toggle Join / Sign In Action
     const joinBtn = await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('article button')).find((b) =>
-        b.textContent.includes('Join Guild')
+        b.textContent.includes('Sign in to Join') || b.textContent.includes('Join Guild')
       );
       if (btn) {
         btn.click();
@@ -93,15 +93,17 @@ async function runVerification() {
       }
       return false;
     });
-    assert(joinBtn, '5a. Verified unjoined guild button clicked');
-    await new Promise((r) => setTimeout(r, 200));
+    assert(joinBtn, '5a. Verified "Sign in to Join" button clicked on group card');
+    await new Promise((r) => setTimeout(r, 400));
 
-    const hasJoinedState = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll('article button')).some((b) =>
-        b.textContent.includes('Joined')
-      );
+    const authModalOpened = await page.evaluate(() => {
+      return document.querySelector('[role="dialog"]') !== null || document.body.textContent.includes('Sign in or Register');
     });
-    assert(hasJoinedState, '5b. Verified guild button toggles to "Joined" state with checkmark');
+    assert(authModalOpened, '5b. Verified clicking "Sign in to Join" properly opened Privy auth modal');
+
+    // Close modal by pressing Escape
+    await page.keyboard.press('Escape');
+    await new Promise((r) => setTimeout(r, 300));
 
     // Test 6: Featured Market Trade Link Navigates to Market Detail
     const hasMarketTrade = await page.evaluate(() => {

@@ -123,8 +123,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       </div>
 
       {/* Floating inline lock pill */}
-      <div className="absolute inset-0 flex items-center justify-center p-2">
-        <div className="flex items-center space-x-1.5 rounded-full border border-omx-border bg-omx-bg/95 backdrop-blur-md px-3 py-1.5 text-xs font-sora font-semibold text-omx-text shadow-md group-hover:border-omx-brand group-hover:text-omx-brand transition-all">
+      <div className="absolute inset-0 flex items-center justify-center p-2 pointer-events-none">
+        <div className="flex items-center space-x-1.5 rounded-full border border-omx-border bg-omx-bg/95 backdrop-blur-md px-3 py-1.5 text-xs font-sora font-semibold text-omx-text shadow-md group-hover:border-omx-brand group-hover:text-omx-brand transition-all whitespace-nowrap">
           <Lock className="h-3.5 w-3.5 text-omx-brand shrink-0" />
           <span>{inlineMessage}</span>
         </div>
